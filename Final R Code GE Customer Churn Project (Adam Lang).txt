@@ -1,0 +1,955 @@
+# Module: find file on computer
+#This function calls the file you are looking for which is the "Cell Data.csv" file.
+file.choose()
+
+# Module: read file into R
+# This module reads the csv file into RStudio. It is important to call the file from its location on your
+#computer. Normally you would use the library "here" but this had trouble loading so I excluded it. 
+cell_data <- read.csv("U:/DAT650 Advanced Analytics/Cell Data.csv")
+
+#==========================================================================================================================
+# Module: Start Rattle just in case it is needed
+#Rattle is a GUI that is used for data mining, modeling and can produce results for any models run in RStudio. 
+library(rattle)
+rattle()
+
+#===========================================================================================================================
+# Module: Load libraries for Exploratory Data Analysis and
+# Data Cleaning
+library(readr)
+library(dplyr)
+library(ggplot2)
+install.packages("openintro")
+library(openintro)
+
+#============================================================================================================================
+# Module: Begin exploratory data analysis by examining the head of the data set, the str function which will call
+#the types of variables in the data set, and also a count of the target variable CHURN in table and ggplot format. 
+
+#Look at head of dataframe
+head(cell_data)
+
+# Examine data set
+str(cell_data)
+
+# count CHURN target variable
+table(cell_data$CHURN)
+# graph CHURN target variable
+ggplot(data = cell_data, aes(CHURN)) + geom_bar()
+
+
+#==========================================================================================================================
+# Module 1. Variable Transformation: convert integers to
+# factors (categorical) variables First convert
+# target variable CHURN to factor
+cell_data$CHURN = as.factor(cell_data$CHURN)
+
+# Examine variable types
+str(cell_data)
+
+# Create vector of all variables needed to convert
+# from integer to factor
+cols <- c("CHILDREN", "CREDITA", "CREDITAA", "CREDITB", 
+    "CREDITC", "CREDITDE", "CREDITGY", "CREDITZ", "CREDIT_RATING", 
+    "PRIZMRUR", "PRIZMUB", "PRIZMTWN", "Column.45", 
+    "REFURB", "WEBCAP", "TRUCK", "RV", "OCCPROF", "OCCCLER", 
+    "OCCCRFT", "OCCSTUD", "OCCHMKR", "OCCRET", "OCCSELF", 
+    "OCC", "OWNRENT", "MARRYUN", "MARRYYES", "MARRYNO", 
+    "MARRY", "MAILORD", "MAILRES", "MAILFLAG", "TRAVEL", 
+    "PCOWN", "CREDITCD", "RETCALLS", "RETACCPT", "NEWCELLY", 
+    "NEWCELLN", "REFER", "INCMISS", "INCOME", "MCYCLE", 
+    "CREDITAD", "SETPRCM", "RETCALL", "CALIBRAT", "CHURNDEP", 
+    "SETPRC")
+# use lapply function to convert all to factors. The lapply and sapply functions are part of the base package
+#so no new libraries need to be installed. 
+cell_data[cols] <- lapply(cell_data[cols], factor)
+# use sapply to check variables are now factors
+sapply(cell_data, class)
+# View data set again
+str(cell_data)
+
+#==========================================================================================================================
+# Module 2. Rename column.45 to correct name of 'PRZM_NUM'
+names(cell_data)[names(cell_data) == "Column.45"] <- "PRZM_NUM"
+str(cell_data)
+
+#==========================================================================================================================
+# Module 3. Explore data structure
+
+# Module 3a. First explore categorical data occupational using ggplot graphing techniques 
+#Need to install ggplot2 library to use ggplot function
+library(ggplot2)
+
+# data has multiple levels, bar graph
+ggplot(cell_data, aes(x = OCC, fill = OCC_LABEL)) + 
+    geom_bar(position = "dodge") + theme(axis.text.x = element_text(angle = 90))
+# histogram of occupational multi level data
+ggplot(cell_data, aes(x = OCC_LABEL)) + geom_histogram(stat = "count")
+# Examine occupation data
+table(cell_data$OCC_LABEL, cell_data$OCC)
+
+# Examine credit rating which has multiple levels
+ggplot(cell_data, aes(x = CREDIT_RATING)) + geom_histogram(stat = "count")
+# Examine CREDITAD which has 6 levels
+ggplot(cell_data, aes(x = CREDITAD)) + geom_histogram(stat = "count")
+# Examine PRZM_NUM variable
+table(cell_data$PRZM_NUM)
+ggplot(cell_data, aes(x = PRZM_NUM)) + geom_histogram(stat = "count")
+# Examine INCOME a factor with 10 levels
+table(cell_data$INCOME)
+ggplot(cell_data, aes(x = INCOME)) + geom_histogram(stat = "count")
+# Examine CSA factor with 277 levels
+table(cell_data$CSA)
+ggplot(cell_data, aes(x = CSA)) + geom_histogram(stat = "count")
+
+# Examine ALL multi-level factor variables using
+# table function
+table(cell_data$CSA)
+table(cell_data$REFER)
+table(cell_data$RETACCPT)
+table(cell_data$RETCALLS)
+table(cell_data$CREDITAD)
+table(cell_data$INCOME)
+table(cell_data$MARRY)
+table(cell_data$OCC_LABEL)
+table(cell_data$OCC)
+table(cell_data$PRZM_NUM)
+table(cell_data$CREDIT_RATING)
+
+
+# Module 3b. Explore numerical variables using ggplot graphing techniques 
+str(cell_data)
+summary(cell_data)
+# histogram of numeric variable REVENUE
+ggplot(cell_data, aes(x = REVENUE)) + geom_histogram()
+# histogram of mean monthly minutes of use (MOU)
+# numeric variable
+p <- ggplot(cell_data, aes(x = MOU)) + geom_histogram(color = "green", 
+    fill = "green")
+p
+# histogram of % change in mins of use (CHANGEM)
+# Which has the highest range
+pl <- ggplot(cell_data, aes(x = CHANGEM)) + geom_histogram(color = "black", 
+    fill = "blue")
+pl
+# histogram of skewed distribution: MOUREC (mean
+# unrounded monthly received voice calls)
+pp <- ggplot(cell_data, aes(x = MOUREC)) + geom_histogram(color = "black", 
+    fill = "red")
+pp
+
+#==========================================================================================================================
+# Module 4. Missing Values: search and find them
+is.na(cell_data)
+sum(is.na(cell_data))
+mean(is.na(cell_data))
+# install packages and libraries to plot missing values using Aggregation Plot 
+install.packages("VIM")
+library("VIM")
+library("dplyr")
+library("ggplot2")
+library("gridExtra")
+install.packages("mice")
+library(mice)
+# Module 4a: Aggregation Plot to show missing values of
+# all variables
+mice_plot <- aggr(cell_data, col = c("navyblue", "yellow"), 
+    numbers = TRUE, sortVars = TRUE, labels = names(cell_data), 
+    cex.axis = 0.7, gap = 3, ylab = c("Missing data", 
+        "Pattern"))
+
+# Module 4b. Remove columns with missing values
+cell_data$CHURNDEP <- NULL
+cell_data$CSA <- NULL
+str(cell_data)
+summary(cell_data)
+
+# Module 4c: Remove 64 remaining Missing Values
+cell_data <- na.omit(cell_data)
+# Re-check CHURN target variable
+table(cell_data$CHURN)
+# graph CHURN target variable
+ggplot(data = cell_data, aes(CHURN)) + geom_bar()
+
+# Module 4d: Check for missing values again after removal
+# of missing values using aggregation plot
+mice_plot <- aggr(cell_data, col = c("navyblue", "yellow"), 
+    numbers = TRUE, sortVars = TRUE, labels = names(cell_data), 
+    cex.axis = 0.7, gap = 3, ylab = c("Missing data", 
+        "Pattern"))
+
+#==========================================================================================================================
+## Module 5. Build logistic regression models##
+## load necessary libraries to build logistic regression models
+library(caTools)
+library(knitr)
+library(ROCR)
+library(caTools)
+library(caret)
+library(DMwR)
+# Examine dependent variable CHURN
+prop.table(x = table(cell_data$CHURN))
+
+# Create train/test split
+#This module will split the data into samples for training and testing
+#for training and testing of supervised learning (logistic regression and random forests)
+#It should be noted that set.seed and sample are in the base package and 
+#do not need to be called by the library function
+set.seed(42)
+# use caTools function to split, SplitRatio for
+# 70%:30% splitting
+data1 = sample.split(cell_data, SplitRatio = 0.7)
+
+# subsetting into Train data
+train = subset(cell_data, data1 == TRUE)
+
+# subsetting into Test data
+test = subset(cell_data, data1 == FALSE)
+
+# Pilot logistic regression model
+model_glm <- glm(CHURN ~ DROPVCE + UNANSVCE + MOUREC + 
+    EQPDAYS + PRZM_NUM + REFURB + WEBCAP + MOU + RECCHRGE + 
+    DIRECTAS + CHANGEM, data = train, family = binomial)
+# Summary of model_glm pilot model
+summary(model_glm)
+# Check Collinearity of variables
+library(car)  #load car library to run vif collinearity function 
+vif(model_glm)
+
+# Stepwise Regression for pilot GLM model
+model_step <- step(model_glm, direction = "both", steps = 10000, 
+    trace = FALSE)
+# Summary of stepwise glm model
+summary(model_step)
+# Check collinearity
+vif(model_step)
+
+#--------------------------------------------------------------------------------------------------------------------------
+## Module Resampling: Resample imbalanced target variable CHURN using
+## SMOTE Technique which uses library DMwR
+library(DMwR)
+
+##Let's check the count of unique
+## value in the target variable
+as.data.frame(table(train$CHURN))
+
+## Smote : Synthetic Minority Oversampling Technique
+## To Handle Class Imbalance In Binary
+## Classification
+balanced.data <- SMOTE(CHURN ~ ., train, perc.over = 100, 
+    k = 5, perc.under = 50)
+
+# Now check balance of target variable CHURN
+as.data.frame(table(balanced.data$CHURN))
+
+# Run 2nd logistic regression model run with pilot
+# variables but re-balanced data set
+model_glm2 <- glm(CHURN ~ DROPVCE + UNANSVCE + MOUREC + 
+    EQPDAYS + PRZM_NUM + REFURB + WEBCAP + RETCALLS + 
+    MOU + RECCHRGE + DIRECTAS + CHANGEM, data = balanced.data, 
+    family = binomial)
+# Summary of 2nd GLM model
+summary(model_glm2)
+# Check ANOVA TYPE 3
+Anova(model_glm2, type = 3)
+# Check collinearity of 2nd GLM model
+vif(model_glm2)
+
+# 2nd GLM model with stepwise regression
+model_step2 <- step(model_glm2, direction = "both", 
+    steps = 10000, trace = FALSE)
+# Summary of 2nd GLM stepwise model
+summary(model_step2)
+# Check collinearity of 2nd GLM model stepwise
+# regression
+vif(model_step2)
+
+#==========================================================================================================================
+## Module 6. Build Random Forest models on
+## training data: import necessary libraries
+library(randomForest)
+library(e1071)
+# Build Random Forest Model #1
+rf = randomForest(CHURN ~ ., ntree = 500, data = train)
+# Print summary of results and variable importance
+print(rf)
+plot(rf)
+varImpPlot(rf, type = 2)
+varImp(rf)
+
+
+## Run 2nd Random Forest model with SMOTE balanced
+## data
+rf2 = randomForest(CHURN ~ ., ntree = 500, data = balanced.data)
+## Print summary of results and variable importance
+print(rf2)
+plot(rf2)
+varImp(rf2)
+varImpPlot(rf2, type = 2)
+
+#==========================================================================================================================
+## Module 7. New variable selection using random forests
+## variable importance GLM model3: logistic
+## regression model with Random Forest #1 variable
+## selection and training data
+model_glm3 <- glm(CHURN ~ CALIBRAT + CHANGEM + INCOME + 
+    EQPDAYS + MOU + MONTHS + CUSTOMER + CHANGER + RECCHRGE + 
+    REVENUE + OPEAKVCE + OUTCALLS, data = train, family = binomial)
+# Summary of GLM model3
+summary(model_glm3)
+# Check collinearity of GLM model3
+vif(model_glm3)
+
+# GLM Model3: Stepwise regression
+model_step3 <- step(model_glm3, direction = "both", 
+    steps = 10000, trace = FALSE)
+# Summary of GLM Model3 stepwise model
+summary(model_step3)
+# Check collinearity of GLM model3
+vif(model_step3)
+
+# GLM Model4: Logistic regression model with Random
+# Forest #2 variable selection and SMOTE balanced
+# data
+model_glm4 <- glm(CHURN ~ CALIBRAT + MONTHS + CUSTOMER + 
+    INCOME + EQPDAYS + CREDIT_RATING + MOU + RECCHRGE + 
+    OPEAKVCE + CHANGEM + DROPBLK + AGE2 + PEAKVCE, 
+    data = balanced.data, family = binomial)
+# Summary of GLM4 model
+summary(model_glm4)
+# Check collinearity
+vif(model_glm4)
+
+# Stepwise regression with GLM Model4
+model_step4 <- step(model_glm3, direction = "both", 
+    steps = 10000, trace = FALSE)
+# Summary of Stepwise GLM model4
+summary(model_step4)
+# Check collinearity
+vif(model_step4)
+
+#=============================================================================================================================
+## Module 8. Let's try a Lasso model for variable selection
+## which uses penalized regression for variable
+## selection and see how similar it can be to random
+## forest variable selection for the other GLM
+## models (GLM models 2-4 had variables chosen by
+## the random forest models) First need to install
+## package 'glmnet' to run Lasso Regression for
+## variable selection
+install.packages("glmnet")
+library(glmnet)
+
+# Dummy code categorical predictor variables, x is
+# the independent variables
+x <- model.matrix(CHURN ~ ., train)[, -1]
+# Outcome class 'CHURN' is the y variable
+y <- train$CHURN
+
+# Below is the general formula for the lasso model.
+# Alpha = 1 is Lasso.
+glmnet(x, y, family = "binomial", alpha = 1, lambda = NULL)
+
+# Find the best lambda value using cross validation
+set.seed(123)
+cv.lasso <- cv.glmnet(x, y, alpha = 1, family = "binomial")
+# Fit the final lasso model on the training data
+model <- glmnet(x, y, alpha = 1, family = "binomial", 
+    lambda = cv.lasso$lambda.min)
+
+# Make predictions on the test data
+x.test <- model.matrix(CHURN ~ ., test)[, -1]
+probabilities <- model %>% predict(newx = x.test)
+predicted.classes <- ifelse(probabilities > 0.5, "1", 
+    "0")
+
+# Lasso Model accuracy check
+observed.classes <- test$CHURN
+mean(predicted.classes == observed.classes)
+
+# Find the optimal value of lambda that minimizes
+# the cross validation error and plot it
+library(glmnet)
+set.seed(123)
+cv.lasso <- cv.glmnet(x, y, alpha = 1, family = "binomial")
+plot(cv.lasso)
+
+# Print Exact value of lambdamin for Lasso
+# penalized regression
+cv.lasso$lambda.min
+# Print 'one standard error of lambda' which is:
+# 1se of lambda
+cv.lasso$lambda.1se
+# lambdamin will reveal the following regression
+# coefficients as best fit for a GLM model
+coef(cv.lasso, cv.lasso$lambda.min)
+## we can now use the chosen regression
+## coefficients/variables to construct a glm model
+
+# Fit the model with the lasso chosen
+# coefficients/variables
+lasso1 <- glm(CHURN ~ CALIBRAT + INCOME + RETCALLS + 
+    WEBCAP + REFURB + EQPDAYS + RECCHRGE, data = balanced.data, 
+    family = binomial)
+
+# Summarize Lasso model
+summary(lasso1)
+# Check collinearity of Lasso model
+vif(lasso1)
+# Check Anova on Lasso model
+Anova(lasso1, type = 3)
+
+#==========================================================================================================================
+## Module 9. Goodness of fit and model results testing##
+
+## AUC-ROC curve for GLM models: start with
+## model_glm4 as this is the best model
+##First need to call the library "pROC"
+library("pROC")
+test_prob <- predict(model_glm4, newdata = test, type = "response")
+test_roc <- roc(test$CHURN ~ test_prob, plot = TRUE, 
+    print.auc = TRUE)
+# Can run ROC curve for every model by changing the
+# glm model variable
+
+## Confusion Matrix for GLM models Lets use the best
+## model: model_glm4
+predict <- predict(model_glm4, test, type = "response")
+# Print confusion matrix for GLM model4
+table_mat <- table(test$CHURN, predict > 0.5)
+table_mat
+## can run confusion matrix for every glm model by
+## simply changing model variable
+
+## Precision-Recall-Accuracy-F1 score calculation
+## for GLM models First set up precision matrix
+precision <- function(matrix) {
+    # True positive
+    tp <- matrix[2, 2]
+    # false positive
+    fp <- matrix[1, 2]
+    return(tp/(tp + fp))
+}
+# Set up recall matrix
+recall <- function(matrix) {
+    # true positive
+    tp <- matrix[2, 2]  # false positive
+    fn <- matrix[2, 1]
+    return(tp/(tp + fn))
+}
+# Calculate precision and recall for GLM Models
+# based off confusion matrix (table_mat)
+prec <- precision(table_mat)
+prec
+rec <- recall(table_mat)
+rec
+
+# Accuracy test for GLM models
+accuracy_Test <- sum(diag(table_mat))/sum(table_mat)
+accuracy_Test
+
+# Calculate F1 score which is balance between
+# precision and recall.
+f1 <- 2 * ((prec * rec)/(prec + rec))
+f1
+## Can check accuracy, precision, recall and F1
+## score for each glm model by changing the
+## confusion matrix glm model variable. This first
+## example was using model_glm4.
+
+#--------------------------------------------------------------------------------------------------------------------------
+## Module: continue goodness of fit/results testing with Print Precision Recall Curve for best GLM model:
+## model_glm4 using RATTLE code Precision/Recall
+## Plot: requires the ROCR package
+library(ROCR)
+# Generate a Precision/Recall Plot for the glm
+# model on balanced.data [test].
+crs$pr <- predict(crs$glm, type = "response", newdata = crs$dataset[crs$test, 
+    c(crs$input, crs$target)])
+# Remove observations with missing target.
+no.miss <- na.omit(crs$dataset[crs$test, c(crs$input, 
+    crs$target)]$CHURN)
+miss.list <- attr(no.miss, "na.action")
+attributes(no.miss) <- NULL
+
+if (length(miss.list)) {
+    pred <- prediction(crs$pr[-miss.list], no.miss)
+} else {
+    pred <- prediction(crs$pr, no.miss)
+}
+ROCR::plot(performance(pred, "prec", "rec"), col = "#CC0000FF", 
+    lty = 1, add = FALSE)
+
+# Generate a Precision/Recall Plot for the glm
+# model on balanced.data [train].
+crs$pr <- predict(crs$glm, type = "response", newdata = crs$dataset[crs$test, 
+    c(crs$input, crs$target)])
+
+# In ROCR (1.0-3) plot does not obey the add
+# command.  Calling the function directly
+# (.plot.performance) does work.
+.plot.performance(performance(prediction(crs$pr, crs$dataset[crs$test, 
+    c(crs$input, crs$target)]$CHURN), "prec", "rec"), 
+    col = "#00CCCCFF", lty = 2, add = TRUE)
+# Add a legend to the plot.
+legend("bottomleft", c("Test", "Train"), col = rainbow(2, 
+    1, 0.8), lty = 1:2, title = "glm", inset = c(0.05, 
+    0.05))
+# Add decorations to the plot.
+title(main = "Precision/Recall Plot  balanced.data ", 
+    sub = paste("Rattle", format(Sys.time(), "%Y-%b-%d %H:%M:%S"), 
+        Sys.info()["user"]))
+grid()
+
+#--------------------------------------------------------------------------------------------------------------------------
+## Module: continue goodness of fit/results testing with AUC-ROC curve for Random Forest Models using
+## RATTLE code RF Model1 - AUC-ROC Curve (RATTLE code)
+library(ROCR)
+# ROC Curve: requires the ggplot2 package.
+library(ggplot2, quietly = TRUE)
+# Generate an ROC Curve for the rf model on
+# cell_data [test].
+crs$pr <- predict(crs$rf, newdata = na.omit(crs$dataset[crs$test, 
+    c(crs$input, crs$target)]), type = "prob")[, 2]
+# Remove observations with missing target.
+no.miss <- na.omit(na.omit(crs$dataset[crs$test, c(crs$input, 
+    crs$target)])$CHURN)
+miss.list <- attr(no.miss, "na.action")
+attributes(no.miss) <- NULL
+
+if (length(miss.list)) {
+    pred <- prediction(crs$pr[-miss.list], no.miss)
+} else {
+    pred <- prediction(crs$pr, no.miss)
+}
+
+pe <- performance(pred, "tpr", "fpr")
+au <- performance(pred, "auc")@y.values[[1]]
+pd <- data.frame(fpr = unlist(pe@x.values), tpr = unlist(pe@y.values))
+p <- ggplot(pd, aes(x = fpr, y = tpr))
+p <- p + geom_line(colour = "red")
+p <- p + xlab("False Positive Rate") + ylab("True Positive Rate")
+p <- p + ggtitle("ROC Curve Random Forest cell_data [test] CHURN")
+p <- p + theme(plot.title = element_text(size = 10))
+p <- p + geom_line(data = data.frame(), aes(x = c(0, 
+    1), y = c(0, 1)), colour = "grey")
+p <- p + annotate("text", x = 0.5, y = 0, hjust = 0, 
+    vjust = 0, size = 5, label = paste("AUC =", round(au, 
+        2)))
+print(p)
+
+# Calculate the area under the curve for the plot.
+# Remove observations with missing target.
+no.miss <- na.omit(na.omit(crs$dataset[crs$test, c(crs$input, 
+    crs$target)])$CHURN)
+miss.list <- attr(no.miss, "na.action")
+attributes(no.miss) <- NULL
+
+if (length(miss.list)) {
+    pred <- prediction(crs$pr[-miss.list], no.miss)
+} else {
+    pred <- prediction(crs$pr, no.miss)
+}
+performance(pred, "auc")
+
+
+# RF Model 2 - AUC-ROC curve (RATTLE code)
+library(ROCR)
+# ROC Curve: requires the ggplot2 package.
+library(ggplot2, quietly = TRUE)
+# Generate an ROC Curve for the rf model on
+# balanced.data [test].
+crs$pr <- predict(crs$rf, newdata = na.omit(crs$dataset[crs$test, 
+    c(crs$input, crs$target)]), type = "prob")[, 2]
+# Remove observations with missing target.
+no.miss <- na.omit(na.omit(crs$dataset[crs$test, c(crs$input, 
+    crs$target)])$CHURN)
+miss.list <- attr(no.miss, "na.action")
+attributes(no.miss) <- NULL
+
+if (length(miss.list)) {
+    pred <- prediction(crs$pr[-miss.list], no.miss)
+} else {
+    pred <- prediction(crs$pr, no.miss)
+}
+
+pe <- performance(pred, "tpr", "fpr")
+au <- performance(pred, "auc")@y.values[[1]]
+pd <- data.frame(fpr = unlist(pe@x.values), tpr = unlist(pe@y.values))
+p <- ggplot(pd, aes(x = fpr, y = tpr))
+p <- p + geom_line(colour = "red")
+p <- p + xlab("False Positive Rate") + ylab("True Positive Rate")
+p <- p + ggtitle("ROC Curve Random Forest balanced.data [test] CHURN")
+p <- p + theme(plot.title = element_text(size = 10))
+p <- p + geom_line(data = data.frame(), aes(x = c(0, 
+    1), y = c(0, 1)), colour = "grey")
+p <- p + annotate("text", x = 0.5, y = 0, hjust = 0, 
+    vjust = 0, size = 5, label = paste("AUC =", round(au, 
+        2)))
+print(p)
+
+# Calculate the area under the curve for the plot.
+# Remove observations with missing target.
+no.miss <- na.omit(na.omit(crs$dataset[crs$test, c(crs$input, 
+    crs$target)])$CHURN)
+miss.list <- attr(no.miss, "na.action")
+attributes(no.miss) <- NULL
+
+if (length(miss.list)) {
+    pred <- prediction(crs$pr[-miss.list], no.miss)
+} else {
+    pred <- prediction(crs$pr, no.miss)
+}
+performance(pred, "auc")
+
+#-------------------------------------------------------------------------------------------------------------------------
+## Confusion Matrix for Random Forest Models
+## CONFUSION MATRIX FOR RF1
+cm1 <- confusionMatrix(predict(rf, test), reference = test$CHURN, 
+    positive = "1")
+cm1
+## CONFUSION MATRIX FOR RF2
+cm2 <- confusionMatrix(predict(rf2, test), reference = test$CHURN, 
+    positive = "1")
+cm2
+
+## Precision-Recall-Accuracy-F1 score calculations
+## for RF Models RF Model 1 calculations Accuracy
+## see confusion matrix (cm1) print out above.
+## Accuracy = 0.74
+Precision = 27/(19 + 27)
+Precision
+Recall = 27/(27 + 15)
+Recall
+f1_score = 2 * ((Precision * Recall)/(Precision + Recall))
+f1_score
+
+# RF Model 2 Calculations Accuracy see confusion
+# matrix (cm2) print out above. Accuracy = 0.43
+Precision2 = 86/(86 + 170)
+Precision2
+Recall2 = 86/(86 + 0)
+Recall2
+f1_score2 = 2 * ((Precision2 * Recall2)/(Precision2 + 
+    Recall2))
+f1_score2
+
+#--------------------------------------------------------------------------------------------------------------------------
+## Module: continue goodness of fit/results testing with Precision-Recall Curve for Random Forest Models
+## (RATTLE code) PR curve for Random Forest model 1
+## Precision/Recall Plot: requires the ROCR package
+library(ROCR)
+# Generate a Precision/Recall Plot for the rf model
+# on cell_data [test].
+crs$pr <- predict(crs$rf, newdata = na.omit(crs$dataset[crs$test, 
+    c(crs$input, crs$target)]), type = "prob")[, 2]
+# Remove observations with missing target.
+no.miss <- na.omit(na.omit(crs$dataset[crs$test, c(crs$input, 
+    crs$target)])$CHURN)
+miss.list <- attr(no.miss, "na.action")
+attributes(no.miss) <- NULL
+
+if (length(miss.list)) {
+    pred <- prediction(crs$pr[-miss.list], no.miss)
+} else {
+    pred <- prediction(crs$pr, no.miss)
+}
+ROCR::plot(performance(pred, "prec", "rec"), col = "#CC0000FF", 
+    lty = 1, add = FALSE)
+
+# Generate a Precision/Recall Plot for the rf model
+# on cell_data [train].
+crs$pr <- predict(crs$rf, newdata = na.omit(crs$dataset[crs$test, 
+    c(crs$input, crs$target)]), type = "prob")[, 2]
+
+# In ROCR (1.0-3) plot does not obey the add
+# command.  Calling the function directly
+# (.plot.performance) does work.
+.plot.performance(performance(prediction(crs$pr, na.omit(crs$dataset[crs$test, 
+    c(crs$input, crs$target)])$CHURN), "prec", "rec"), 
+    col = "#00CCCCFF", lty = 2, add = TRUE)
+# Add a legend to the plot.
+legend("bottomleft", c("Test", "Train"), col = rainbow(2, 
+    1, 0.8), lty = 1:2, title = "rf", inset = c(0.05, 
+    0.05))
+# Add decorations to the plot.
+title(main = "Precision/Recall Plot  cell_data ", sub = paste("Rattle", 
+    format(Sys.time(), "%Y-%b-%d %H:%M:%S"), Sys.info()["user"]))
+grid()
+
+## Precision-Recall curve for Random Forest model 2
+## (RATTLE code) Precision/Recall Plot: requires the
+## ROCR package
+library(ROCR)
+
+# Generate a Precision/Recall Plot for the rf model
+# on balanced.data [test].
+crs$pr <- predict(crs$rf, newdata = na.omit(crs$dataset[crs$test, 
+    c(crs$input, crs$target)]), type = "prob")[, 2]
+# Remove observations with missing target.
+no.miss <- na.omit(na.omit(crs$dataset[crs$test, c(crs$input, 
+    crs$target)])$CHURN)
+miss.list <- attr(no.miss, "na.action")
+attributes(no.miss) <- NULL
+
+if (length(miss.list)) {
+    pred <- prediction(crs$pr[-miss.list], no.miss)
+} else {
+    pred <- prediction(crs$pr, no.miss)
+}
+ROCR::plot(performance(pred, "prec", "rec"), col = "#CC0000FF", 
+    lty = 1, add = FALSE)
+
+# Generate a Precision/Recall Plot for the rf model
+# on balanced.data [train].
+crs$pr <- predict(crs$rf, newdata = na.omit(crs$dataset[crs$test, 
+    c(crs$input, crs$target)]), type = "prob")[, 2]
+
+# In ROCR (1.0-3) plot does not obey the add
+# command.  Calling the function directly
+# (.plot.performance) does work.
+.plot.performance(performance(prediction(crs$pr, na.omit(crs$dataset[crs$test, 
+    c(crs$input, crs$target)])$CHURN), "prec", "rec"), 
+    col = "#00CCCCFF", lty = 2, add = TRUE)
+# Add a legend to the plot.
+legend("bottomleft", c("Test", "Train"), col = rainbow(2, 
+    1, 0.8), lty = 1:2, title = "rf", inset = c(0.05, 
+    0.05))
+# Add decorations to the plot.
+title(main = "Precision/Recall Plot  balanced.data ", 
+    sub = paste("Rattle", format(Sys.time(), "%Y-%b-%d %H:%M:%S"), 
+        Sys.info()["user"]))
+grid()
+
+#=========================================================================================================================
+## Module 10. Goodness of Fit for GLM models## 
+
+## Module 10a. Likelihood ratio test: load library 'lmtest'
+library(lmtest)
+#Run likelihood ratio test
+lrtest(model_glm, model_step)
+lrtest(model_glm2, model_step2)
+lrtest(model_glm3, model_step3)
+lrtest(model_glm4, lasso1)
+## Module 10b. Goodness of fit for GLM models using ANOVA
+## chisq values
+anova(model_glm, model_step, test = "Chisq")
+anova(model_glm2, model_step2, test = "Chisq")
+anova(model_glm3, model_step3, test = "Chisq")
+anova(model_glm4, lasso1, test = "Chisq")
+
+## Module 10c. GLM model goodness of fit: McFadden's
+## PseudoR2 test load library 'pscl'
+install.packages("pscl")
+library(pscl)
+#Run McFadden's Pseudo R2 test
+pR2(model_glm)
+pR2(model_step)
+pR2(model_glm2)
+pR2(model_step2)
+pR2(model_glm3)
+pR2(model_step3)
+pR2(model_glm4)
+pR2(model_step4)
+pR2(lasso1)
+
+## Module 10d. Test AIC values for all glm models
+AIC(model_glm, model_glm2, model_glm3, model_glm4, 
+    lasso1)
+AIC(model_step, model_step2, model_step3, model_step4)
+BIC(model_glm, model_glm2, model_glm3, model_glm4, 
+    lasso1)
+BIC(model_step, model_step2, model_step3, model_step4)
+
+## construct frequency table for AIC values of all
+## GLM models
+AIC <- matrix(c(813.47, 807.19, 498.57, 484.59, 612.3, 
+    597.03, 405.16, 597.03, 436.13), ncol = 1, nrow = 9)
+colnames(AIC) <- c("AIC Value")
+rownames(AIC) <- c("model_glm", "model_step", "model_glm2", 
+    "model_step2", "model_glm3", "model_step3", "model_glm4", 
+    "model_step4", "lasso1")
+AIC.table <- as.table(AIC)
+AIC.table
+
+## Module 10e. Binned residuals for goodness of fit of GLM
+## models install necessary libraries
+install.packages("performance")
+library(performance)
+install.packages("see")
+library(see)
+# Print binned residuals plots for all GLM models
+performance::binned_residuals(model_glm4)
+performance::binned_residuals(lasso1)
+performance::binned_residuals(model_glm3)
+performance::binned_residuals(model_glm2)
+performance::binned_residuals(model_glm)
+## Can change model variable to check for stepwise
+## regression models as well
+
+## Module 10f. Plot Pearsons residuals for goodness of fit
+## of GLM models
+plot(density(resid(model_glm4, type = "pearson")))
+lines(density(resid(lasso1, type = "pearson")), col = "purple")
+lines(density(resid(model_glm3, type = "pearson")), 
+    col = "red")
+lines(density(resid(model_glm2, type = "pearson")), 
+    col = "blue")
+lines(density(resid(model_glm, type = "pearson")), 
+    col = "green")
+
+
+
+#Cook's distance plot
+plot(model_glm4, which=4, id.n=3)
+
+#load library broom
+library(broom)
+#Extract model results
+model.data<- augment(model_glm4) %>%
+  mutate(index = 1:n())
+
+#data for top 3 largest values according to cook's distance
+model.data %>% top_n(3, .cooksd)
+
+#plot standardized residuals
+ggplot(model.data, aes(index, .std.resid)) +
+  geom_point(aes(color=CHURN), alpha 
+             = .5) + 
+  theme_bw()
+
+#filter potential influential data points 
+model.data %>%
+  filter(abs(.std.resid) > 3)
+#==========================================================================================================================
+## Module 11. Random Forest plots install library
+## ggRandomForests for gg_error plot(OOB error plot)
+install.packages("ggRandomForests")
+library(ggRandomForests)
+
+# Module 11a. Random Forest plot: OOB error rate
+plot(gg_error(rf))
+
+# Module 11b. Random Forest: Partial Dependence Plot
+install.packages("pdp")
+library("pdp")
+partial(rf, pred.var = "CHURN", plot = TRUE, rug = TRUE)
+
+#==========================================================================================================================
+## Module 12a. Logistic Regression Plots Plot function will
+## produce 4 different plots of GLM model 10a.
+## Print: Residuals vs. fitted plot, Q-Q plot,
+## Scale-Location Plot, and Residuals vs. Leverage
+## Plot
+plot(model_glm4)
+# can change model variable to print plots for each
+# model
+
+# Module 12b. GLM model partial dependence plot
+install.packages("pdp")
+library("pdp")
+partial(model_glm4, pred.var = "CHURN", plot = TRUE, 
+    rug = TRUE)
+# can change model variable to see each pdp plot
+# for each model
+
+#==========================================================================================================================
+## Module 13. Comparison of all models (GLM vs. RF) with
+## cross validation and caret package resampling
+## Need to install mlbench (machine learning bench)
+## and caret packages
+install.packages("mlbench")
+library(mlbench)
+install.packages("caret")
+library(caret)
+
+# First set up trainControl for repeated 10 folds
+# cross validation
+# trainControl is a function that is part of the caret package
+set.seed(123)
+train.control <- trainControl(method = "repeatedcv", 
+    number = 10, repeats = 3)
+
+# Now Train the models 
+#1. model_glm4 will be trained/cross validated first as this was the
+# best GLM model
+glm4 <- train(CHURN ~ CALIBRAT + MONTHS + CUSTOMER + 
+    INCOME + EQPDAYS + CREDIT_RATING + MOU + RECCHRGE + 
+    OPEAKVCE + CHANGEM + DROPBLK + AGE2 + PEAKVCE, 
+    data = balanced.data, method = "glm", trControl = train.control)
+# Summarize the results for this model
+print(glm4)
+
+## 2. model_glm2 will be trained/cross validated
+## next as this was the 2nd best GLM model
+glm2 <- train(CHURN ~ DROPVCE + UNANSVCE + MOUREC + 
+    EQPDAYS + PRZM_NUM + REFURB + WEBCAP + RETCALLS + 
+    MOU + RECCHRGE + DIRECTAS + CHANGEM, data = balanced.data, 
+    method = "glm", trControl = train.control)
+# Summarize the results for this model
+print(glm2)
+
+## 3. Lasso model will be cross validated as this
+## model was very similar to model_glm4 in
+## statistical fitness
+lasso <- train(CHURN ~ CALIBRAT + INCOME + RETCALLS + 
+    WEBCAP + REFURB + EQPDAYS + RECCHRGE, data = balanced.data, 
+    method = "glm", trControl = train.control)
+# Summarize the results for this model
+print(lasso)
+
+## 4. Train/cross validate First random forest model
+## (RF1)
+rfor1 <- train(CHURN ~ ., data = cell_data, method = "rf", 
+    trControl = train.control)
+# Summarize the results
+print(rfor1)
+
+## 5. Train/cross validate the second random forest
+## model (RF2)
+rfor2 <- train(CHURN ~ ., data = balanced.data, method = "rf", 
+    trControl = train.control)
+# Summarize the results
+print(rfor2)
+
+## Now Perform resampling using caret package to
+## compare results of all models
+results <- resamples(list(R1 = rfor1, R2 = rfor2, log4 = glm4, 
+    log2 = glm2, lass = lasso))
+# Print summary of all the models together This
+# will print Accuracy and Kappa values of the cross
+# validation process with summary statistics.
+summary(results)
+
+## Now we can print comparison plots of the cross
+## validation of all models box and whisker plots to
+## compare all cross validated models (resamples)
+scales <- list(x = list(relation = "free"), y = list(relation = "free"))
+bwplot(results, scales = scales)
+
+# density plots of accuracy of cross validated
+# models (resamples)
+scales <- list(x = list(relation = "free"), y = list(relation = "free"))
+densityplot(results, scales = scales, pch = "|")
+
+# dot plots of accuracy of cross validated models
+# (resamples)
+scales <- list(x = list(relation = "free"), y = list(relation = "free"))
+dotplot(results, scales = scales)
+
+# parallel plots to compare cross validated models
+# (resamples)
+parallelplot(results)
+
+# pair-wise scatterplots of predictions to compare
+# cross validated models
+splom(results)
+
+# Now we can print the difference in cross
+# validated model predictions
+diffs <- diff(results)
+# summarize p-values for pair-wise comparisons of
+# all cross validated models
+summary(diffs)
+
+
